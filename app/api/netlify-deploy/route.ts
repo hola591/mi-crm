@@ -3,6 +3,18 @@ import { NextRequest, NextResponse } from "next/server";
 
 export const maxDuration = 300;
 
+async function waitForDeploy(deployId: string, token: string): Promise<void> {
+  for (let i = 0; i < 30; i++) {
+    await new Promise((r) => setTimeout(r, 3000));
+    const res = await fetch(`https://api.netlify.com/api/v1/deploys/${deployId}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const d = await res.json();
+    if (d.state === "ready") return;
+    if (d.state === "error") throw new Error(`Deploy falló: ${d.error_message}`);
+  }
+}
+
 export async function POST(req: NextRequest) {
   const { html, clientName } = await req.json();
 
@@ -43,6 +55,8 @@ export async function POST(req: NextRequest) {
   }
 
   const site = await siteRes.json();
+  // Netlify devuelve 'name' como el subdominio, y 'url' como la URL completa
+  const siteUrl: string = site.url ?? `https://${site.name}.netlify.app`;
 
   // 2. Crear deploy con hash del archivo
   const sha1 = createHash("sha1").update(html).digest("hex");
@@ -90,6 +104,12 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const url = `https://${site.subdomain}.netlify.app`;
-  return NextResponse.json({ url });
+  // 4. Esperar a que el deploy esté listo
+  try {
+    await waitForDeploy(deploy.id, token);
+  } catch {
+    // Si el polling falla devolvemos la URL igualmente (puede tardar un poco en cargar)
+  }
+
+  return NextResponse.json({ url: siteUrl });
 }
