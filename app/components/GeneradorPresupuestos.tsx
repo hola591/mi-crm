@@ -239,7 +239,7 @@ export default function GeneradorPresupuestos() {
       const html = await generateText(
         buildHtmlPrompt(contenido, nombreCliente),
         SYSTEM_HTML,
-        8000
+        6000
       );
 
       // Paso 3: publicar en Netlify

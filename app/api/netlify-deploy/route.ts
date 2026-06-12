@@ -16,7 +16,10 @@ async function waitForDeploy(deployId: string, token: string): Promise<void> {
 }
 
 export async function POST(req: NextRequest) {
-  const { html, clientName } = await req.json();
+  let { html, clientName } = await req.json();
+
+  // Claude a veces envuelve el HTML en ```html ... ``` aunque se le pida que no
+  html = html.replace(/^```(?:html)?\s*/i, "").replace(/\s*```\s*$/, "").trim();
 
   const token = process.env.NETLIFY_API_TOKEN;
   if (!token) {
@@ -55,8 +58,7 @@ export async function POST(req: NextRequest) {
   }
 
   const site = await siteRes.json();
-  // Netlify devuelve 'name' como el subdominio, y 'url' como la URL completa
-  const siteUrl: string = site.url ?? `https://${site.name}.netlify.app`;
+  const siteUrl = `https://${site.name}.netlify.app`;
 
   // 2. Crear deploy con hash del archivo
   const sha1 = createHash("sha1").update(html).digest("hex");
