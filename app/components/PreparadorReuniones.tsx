@@ -223,7 +223,7 @@ Devuelve el informe EXACTAMENTE en este formato XML (sin texto fuera de las etiq
             <div className="space-y-4">
               {informe.objeciones.map((item, i) => (
                 <div key={i} className="border-l-2 border-gray-200 pl-4">
-                  <p className="text-sm font-medium text-gray-800 mb-1">"{item.objecion}"</p>
+                  <p className="text-sm font-medium text-gray-800 mb-1">&ldquo;{item.objecion}&rdquo;</p>
                   <p className="text-sm text-gray-600 leading-relaxed">{item.respuesta}</p>
                 </div>
               ))}
