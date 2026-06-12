@@ -12,12 +12,15 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const slug = `propuesta-${clientName
+  const suffix = Date.now().toString().slice(-6);
+  const sanitized = clientName
     .toLowerCase()
     .normalize("NFD")
     .replace(/[̀-ͯ]/g, "")
     .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-|-$/g, "")}-${Date.now()}`;
+    .replace(/^-|-$/g, "")
+    .slice(0, 40);
+  const slug = `p-${sanitized}-${suffix}`;
 
   // 1. Crear el site
   const siteRes = await fetch("https://api.netlify.com/api/v1/sites", {
