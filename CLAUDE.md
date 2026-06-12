@@ -38,10 +38,23 @@ npm run dev   # arranca en http://localhost:3001
 | `prospeccion` | Prospección | En construcción |
 | `form-personalizado` | Form Personalizado | En construcción |
 | `ver-reuniones` | Ver Reuniones | En construcción |
-| `preparador-reuniones` | Preparador de Reuniones | En construcción |
+| `preparador-reuniones` | Preparador de Reuniones | **Funcional** |
 | `generador-presupuestos` | Generador de Presupuestos | En construcción |
 
-Todos muestran placeholder por ahora. El área central cambia al hacer clic en el sidebar. El ítem activo tiene `bg-gray-900 text-white`.
+Los módulos en construcción muestran placeholder. El área central cambia al hacer clic en el sidebar. El ítem activo tiene `bg-gray-900 text-white`.
+
+### Preparador de Reuniones — detalle
+
+Componente: `app/components/Dashboard.tsx` renderiza `<PreparadorReuniones />` cuando `activeModule === "preparador-reuniones"`.
+Archivo: `app/components/PreparadorReuniones.tsx`
+
+Flujo: 3 textareas (persona, empresa, historial) → botón "Generar informe" → llama a `generateText()` → parsea respuesta XML de Claude → muestra:
+1. Valoración del lead (caliente/tibio/frío) con explicación
+2. Resumen persona + resumen empresa (grid 2 columnas)
+3. Objeciones probables con respuesta a cada una
+4. Qué proponerle (tarjeta oscura)
+
+El parser es tolerante: si Claude omite el tag XML de cierre, captura el contenido igualmente.
 
 ## Integración Claude AI
 

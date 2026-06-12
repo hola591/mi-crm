@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import PreparadorReuniones from "./PreparadorReuniones";
 
 const modules = [
   {
@@ -113,15 +114,19 @@ export default function Dashboard() {
 
         {/* Module area */}
         <div className="flex-1 overflow-y-auto p-8">
-          <div className="flex items-center justify-center h-full min-h-[400px]">
-            <div className="text-center">
-              <span className="text-gray-300 mb-4 flex justify-center">{current?.icon && (
-                <span className="w-12 h-12 [&>svg]:w-12 [&>svg]:h-12">{current.icon}</span>
-              )}</span>
-              <h2 className="text-2xl font-semibold text-gray-800 mt-2">{current?.label}</h2>
-              <p className="text-gray-400 text-sm mt-2">Este módulo está en construcción.</p>
+          {activeModule === "preparador-reuniones" ? (
+            <PreparadorReuniones />
+          ) : (
+            <div className="flex items-center justify-center h-full min-h-[400px]">
+              <div className="text-center">
+                <span className="text-gray-300 mb-4 flex justify-center">{current?.icon && (
+                  <span className="w-12 h-12 [&>svg]:w-12 [&>svg]:h-12">{current.icon}</span>
+                )}</span>
+                <h2 className="text-2xl font-semibold text-gray-800 mt-2">{current?.label}</h2>
+                <p className="text-gray-400 text-sm mt-2">Este módulo está en construcción.</p>
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </main>
     </div>
