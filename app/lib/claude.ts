@@ -14,6 +14,15 @@ export async function generateText(
     throw new Error(err.error ?? `API error ${res.status}`);
   }
 
-  const data = await res.json();
-  return data.text as string;
+  const reader = res.body!.getReader();
+  const decoder = new TextDecoder();
+  let text = "";
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    text += decoder.decode(value, { stream: true });
+  }
+
+  return text;
 }
