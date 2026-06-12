@@ -1,8 +1,12 @@
-export async function generateText(prompt: string, system?: string): Promise<string> {
+export async function generateText(
+  prompt: string,
+  system?: string,
+  maxTokens?: number
+): Promise<string> {
   const res = await fetch("/api/generate", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ prompt, system }),
+    body: JSON.stringify({ prompt, system, maxTokens }),
   });
 
   if (!res.ok) {

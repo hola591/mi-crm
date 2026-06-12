@@ -6,7 +6,7 @@ const client = new Anthropic({
 });
 
 export async function POST(req: NextRequest) {
-  const { prompt, system } = await req.json();
+  const { prompt, system, maxTokens } = await req.json();
 
   if (!prompt) {
     return NextResponse.json({ error: "prompt is required" }, { status: 400 });
@@ -14,7 +14,7 @@ export async function POST(req: NextRequest) {
 
   const message = await client.messages.create({
     model: "claude-sonnet-4-6",
-    max_tokens: 1024,
+    max_tokens: maxTokens ?? 1024,
     ...(system ? { system } : {}),
     messages: [{ role: "user", content: prompt }],
   });

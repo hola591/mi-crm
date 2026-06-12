@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import PreparadorReuniones from "./PreparadorReuniones";
+import GeneradorPresupuestos from "./GeneradorPresupuestos";
 
 const modules = [
   {
@@ -116,6 +117,8 @@ export default function Dashboard() {
         <div className="flex-1 overflow-y-auto p-8">
           {activeModule === "preparador-reuniones" ? (
             <PreparadorReuniones />
+          ) : activeModule === "generador-presupuestos" ? (
+            <GeneradorPresupuestos />
           ) : (
             <div className="flex items-center justify-center h-full min-h-[400px]">
               <div className="text-center">
