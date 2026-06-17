@@ -4,8 +4,9 @@ export async function GET() {
   const apiKey = process.env.TIDYCAL_API_KEY;
 
   if (!apiKey) {
+    const envKeys = Object.keys(process.env).filter((k) => k.includes("TIDY") || k.includes("TIDYCAL"));
     return NextResponse.json(
-      { error: "TIDYCAL_API_KEY no está configurada en .env.local" },
+      { error: "TIDYCAL_API_KEY no encontrada", vars_con_TIDY: envKeys, todas_las_vars: Object.keys(process.env).sort() },
       { status: 500 }
     );
   }
