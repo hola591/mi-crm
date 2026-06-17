@@ -3,10 +3,15 @@ import { NextResponse } from "next/server";
 export async function GET() {
   const apiKey = process.env.TIDYCAL_API_KEY;
 
+  const rawValue = process.env.TIDYCAL_API_KEY;
   if (!apiKey) {
-    const envKeys = Object.keys(process.env).filter((k) => k.includes("TIDY") || k.includes("TIDYCAL"));
     return NextResponse.json(
-      { error: "TIDYCAL_API_KEY no encontrada", vars_con_TIDY: envKeys, todas_las_vars: Object.keys(process.env).sort() },
+      {
+        error: "TIDYCAL_API_KEY está vacía o ausente",
+        value_length: rawValue?.length ?? 0,
+        value_trimmed_length: rawValue?.trim().length ?? 0,
+        existe_en_env: "TIDYCAL_API_KEY" in process.env,
+      },
       { status: 500 }
     );
   }
