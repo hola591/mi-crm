@@ -16,10 +16,8 @@ async function waitForDeploy(deployId: string, token: string): Promise<void> {
 }
 
 export async function POST(req: NextRequest) {
-  let { html, clientName } = await req.json();
-
-  // Claude a veces envuelve el HTML en ```html ... ``` aunque se le pida que no
-  html = html.replace(/^```(?:html)?\s*/i, "").replace(/\s*```\s*$/, "").trim();
+  const { html: rawHtml, clientName } = await req.json();
+  const html = rawHtml.replace(/^```(?:html)?\s*/i, "").replace(/\s*```\s*$/, "").trim();
 
   const token = process.env.NETLIFY_API_TOKEN;
   if (!token) {
