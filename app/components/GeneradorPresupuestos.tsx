@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { generateText } from "@/app/lib/claude";
 
-type Paso = "idle" | "generando-contenido" | "generando-html" | "publicando" | "listo" | "error";
+type Paso = "idle" | "generando-contenido" | "generando-html" | "listo" | "error";
 
 const SYSTEM_CONTENIDO = `Eres la asistente comercial de ZasZas Agency / Mila Coco. Generas propuestas comerciales con el tono exacto de la agencia: directo, con personalidad, humor sutil y honesto, sin anglicismos ni marketing inflado. Primera persona, cercano pero profesional. Frases cortas. Párrafos cortos. Sin relleno. Siempre en español.`;
 
@@ -209,7 +209,7 @@ export default function GeneradorPresupuestos() {
   const [notas, setNotas] = useState("");
 
   const [paso, setPaso] = useState<Paso>("idle");
-  const [url, setUrl] = useState("");
+  const [htmlGenerado, setHtmlGenerado] = useState("");
   const [error, setError] = useState("");
 
   async function generarPresupuesto() {
@@ -223,7 +223,7 @@ export default function GeneradorPresupuestos() {
     }
 
     setError("");
-    setUrl("");
+    setHtmlGenerado("");
     setPaso("generando-contenido");
 
     try {
@@ -242,18 +242,13 @@ export default function GeneradorPresupuestos() {
         6000
       );
 
-      // Paso 3: publicar en Netlify
-      setPaso("publicando");
-      const res = await fetch("/api/netlify-deploy", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ html, clientName: nombreCliente }),
-      });
+      // Strip por si Claude añade bloques markdown
+      const htmlLimpio = html
+        .replace(/^```(?:html)?\s*/i, "")
+        .replace(/\s*```\s*$/, "")
+        .trim();
 
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "Error al publicar en Netlify");
-
-      setUrl(data.url);
+      setHtmlGenerado(htmlLimpio);
       setPaso("listo");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Error desconocido");
@@ -263,16 +258,31 @@ export default function GeneradorPresupuestos() {
 
   function resetear() {
     setPaso("idle");
-    setUrl("");
+    setHtmlGenerado("");
     setError("");
   }
 
-  const cargando = ["generando-contenido", "generando-html", "publicando"].includes(paso);
+  function descargarHtml() {
+    const blob = new Blob([htmlGenerado], { type: "text/html;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `propuesta-${nombreCliente.toLowerCase().replace(/\s+/g, "-")}.html`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  function abrirEnPestana() {
+    const blob = new Blob([htmlGenerado], { type: "text/html;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    window.open(url, "_blank");
+  }
+
+  const cargando = ["generando-contenido", "generando-html"].includes(paso);
 
   const PASO_LABELS: Record<string, string> = {
     "generando-contenido": "Redactando las 9 secciones de la propuesta...",
     "generando-html": "Maquetando la landing page con el branding de Mila Coco...",
-    publicando: "Publicando en Netlify...",
   };
 
   return (
@@ -372,7 +382,7 @@ export default function GeneradorPresupuestos() {
       </div>
 
       {/* Resultado */}
-      {paso === "listo" && url && (
+      {paso === "listo" && htmlGenerado && (
         <div className="rounded-xl border border-green-200 bg-green-50 p-6 space-y-4">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-full bg-green-500 flex items-center justify-center shrink-0">
@@ -381,25 +391,23 @@ export default function GeneradorPresupuestos() {
               </svg>
             </div>
             <div>
-              <p className="text-sm font-semibold text-green-800">¡Propuesta publicada!</p>
-              <p className="text-xs text-green-600">La landing está live en Netlify y lista para compartir con el cliente.</p>
+              <p className="text-sm font-semibold text-green-800">¡Propuesta generada!</p>
+              <p className="text-xs text-green-600">Ábrela en el navegador y usa Cmd+P → Guardar como PDF para enviársela al cliente.</p>
             </div>
           </div>
 
-          <div className="flex items-center gap-3 bg-white rounded-lg border border-green-200 px-4 py-3">
-            <a
-              href={url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-sm font-medium text-gray-900 hover:underline break-all flex-1"
-            >
-              {url}
-            </a>
+          <div className="flex gap-3">
             <button
-              onClick={() => navigator.clipboard.writeText(url)}
-              className="shrink-0 text-xs text-gray-500 hover:text-gray-900 border border-gray-200 rounded px-2.5 py-1 hover:bg-gray-50 transition-colors"
+              onClick={abrirEnPestana}
+              className="flex-1 py-2.5 px-4 bg-gray-900 text-white text-sm font-semibold rounded-lg hover:bg-gray-700 transition-colors"
             >
-              Copiar
+              Abrir propuesta
+            </button>
+            <button
+              onClick={descargarHtml}
+              className="flex-1 py-2.5 px-4 bg-white text-gray-700 text-sm font-semibold rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors"
+            >
+              Descargar HTML
             </button>
           </div>
 
