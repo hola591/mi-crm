@@ -20,6 +20,7 @@ export async function GET() {
       Authorization: `Bearer ${apiKey}`,
       Accept: "application/json",
     },
+    cache: "no-store",
   });
 
   if (!res.ok) {
