@@ -34,7 +34,7 @@ export async function GET() {
   const rawBookings: Record<string, unknown>[] = data.data ?? [];
 
   const bookings = rawBookings
-    .filter((b) => b.cancelled_at === null)
+    .filter((b) => !b.cancelled_at)
     .map((b) => {
       const rawQuestions = (b.questions as { question: string; answer: string | string[] }[]) ?? [];
 
