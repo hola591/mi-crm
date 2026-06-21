@@ -4,6 +4,7 @@ import { useState } from "react";
 import PreparadorReuniones from "./PreparadorReuniones";
 import GeneradorPresupuestos from "./GeneradorPresupuestos";
 import VerReuniones from "./VerReuniones";
+import Prospeccion from "./Prospeccion";
 
 const modules = [
   {
@@ -106,9 +107,13 @@ export default function Dashboard() {
         </header>
 
         {/* Module area */}
-        <div className={`flex-1 overflow-hidden ${activeModule === "ver-reuniones" ? "" : "overflow-y-auto p-8"}`}>
+        <div className={`flex-1 overflow-hidden ${activeModule === "ver-reuniones" || activeModule === "prospeccion" ? "" : "overflow-y-auto p-8"}`}>
           {activeModule === "ver-reuniones" ? (
             <VerReuniones />
+          ) : activeModule === "prospeccion" ? (
+            <div className="flex flex-col h-full overflow-hidden px-8">
+              <Prospeccion />
+            </div>
           ) : activeModule === "preparador-reuniones" ? (
             <PreparadorReuniones />
           ) : activeModule === "generador-presupuestos" ? (
