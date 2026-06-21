@@ -415,7 +415,7 @@ function DocumentoView({
         <div className="space-y-3">
           {doc.objeciones.map((o, i) => (
             <div key={i} className="rounded-lg bg-gray-50 p-3">
-              <p className="text-sm font-medium text-gray-800">"{o.objecion}"</p>
+              <p className="text-sm font-medium text-gray-800">&ldquo;{o.objecion}&rdquo;</p>
               <p className="text-sm text-gray-600 mt-1">→ {o.respuesta}</p>
             </div>
           ))}
@@ -1185,7 +1185,7 @@ function FilterHintsSection({ hints, open, onToggle }: {
                     : "FILTRO"}
                 </span>
                 <div className="min-w-0">
-                  <p className="text-xs font-semibold text-gray-800">"{hint.label}"</p>
+                  <p className="text-xs font-semibold text-gray-800">&ldquo;{hint.label}&rdquo;</p>
                   {hint.donde && (
                     <p className="text-[11px] text-violet-600 mt-0.5">{hint.donde}</p>
                   )}
