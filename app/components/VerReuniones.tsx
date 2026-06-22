@@ -2,11 +2,7 @@
 
 import { useEffect, useState } from "react";
 
-interface Question {
-  question: string;
-  answer: string;
-}
-
+interface Question { question: string; answer: string; }
 interface Booking {
   id: number | string;
   starts_at: string;
@@ -16,12 +12,7 @@ interface Booking {
   web_url: string;
   questions: Question[];
 }
-
-interface Objecion {
-  objecion: string;
-  como_responder: string;
-}
-
+interface Objecion { objecion: string; como_responder: string; }
 interface Informe {
   scoring: "warm" | "mild" | "cold";
   razon_scoring: string;
@@ -34,68 +25,59 @@ interface Informe {
 
 type Scoring = "warm" | "mild" | "cold";
 
-function scoringBadge(scoring: Scoring | null) {
-  if (!scoring) {
-    return (
-      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-500">
-        Pendiente
-      </span>
-    );
-  }
-  const map: Record<Scoring, { label: string; className: string }> = {
-    warm: { label: "Warm", className: "bg-green-100 text-green-700" },
-    mild: { label: "Mild", className: "bg-yellow-100 text-yellow-700" },
-    cold: { label: "Cold", className: "bg-red-100 text-red-600" },
-  };
-  const { label, className } = map[scoring];
-  return (
-    <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${className}`}>
-      {label}
-    </span>
-  );
+const SCORING_CONFIG: Record<Scoring, { label: string; bg: string; text: string; emoji: string; badgeStyle: React.CSSProperties }> = {
+  warm: {
+    label: "Warm — Lead caliente", bg: "#FFF0F0", text: "#C53030", emoji: "🔥",
+    badgeStyle: { background: "#FFE4E4", color: "#C53030", border: "1.5px solid #111111" },
+  },
+  mild: {
+    label: "Mild — Lead tibio", bg: "#FFFBEB", text: "#92400E", emoji: "🌤",
+    badgeStyle: { background: "#FEF9C3", color: "#854D0E", border: "1.5px solid #111111" },
+  },
+  cold: {
+    label: "Cold — Lead frío", bg: "#EFF6FF", text: "#1E40AF", emoji: "❄️",
+    badgeStyle: { background: "#DBEAFE", color: "#1E40AF", border: "1.5px solid #111111" },
+  },
+};
+
+function getInitials(name: string) {
+  return name.split(" ").slice(0, 2).map((n) => n[0]).join("").toUpperCase();
 }
 
-function scoringBadgeLarge(scoring: Scoring) {
-  const map: Record<Scoring, { label: string; className: string; dot: string }> = {
-    warm: { label: "Warm — Lead caliente", className: "bg-green-50 border-green-200 text-green-800", dot: "bg-green-500" },
-    mild: { label: "Mild — Lead tibio", className: "bg-yellow-50 border-yellow-200 text-yellow-800", dot: "bg-yellow-500" },
-    cold: { label: "Cold — Lead frío", className: "bg-red-50 border-red-200 text-red-800", dot: "bg-red-500" },
-  };
-  const { label, className, dot } = map[scoring];
-  return (
-    <div className={`flex items-center gap-2 px-4 py-2 rounded-lg border ${className} text-sm font-semibold`}>
-      <span className={`w-2.5 h-2.5 rounded-full ${dot}`} />
-      {label}
-    </div>
-  );
+function getAvatarBg(scoring: Scoring | null): string {
+  if (scoring === "warm") return "#FECACA";
+  if (scoring === "cold") return "#BFDBFE";
+  if (scoring === "mild") return "#FDE68A";
+  return "#E0DED8";
+}
+
+function getAvatarText(scoring: Scoring | null): string {
+  if (scoring === "warm") return "#C53030";
+  if (scoring === "cold") return "#1E40AF";
+  if (scoring === "mild") return "#92400E";
+  return "#666666";
 }
 
 function formatDate(iso: string) {
   const d = new Date(iso);
-  return d.toLocaleDateString("es-ES", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+  return d.toLocaleDateString("es-ES", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
 }
 
-function storageKey(id: number | string) {
-  return `informe_${id}`;
+function formatDateShort(iso: string) {
+  const d = new Date(iso);
+  return {
+    day: d.toLocaleDateString("es-ES", { day: "numeric" }),
+    month: d.toLocaleDateString("es-ES", { month: "short" }).toUpperCase(),
+    time: d.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" }),
+  };
 }
 
+function storageKey(id: number | string) { return `informe_${id}`; }
 function loadInforme(id: number | string): Informe | null {
-  try {
-    const raw = localStorage.getItem(storageKey(id));
-    return raw ? JSON.parse(raw) : null;
-  } catch {
-    return null;
-  }
+  try { const r = localStorage.getItem(storageKey(id)); return r ? JSON.parse(r) : null; } catch { return null; }
 }
-
-function saveInforme(id: number | string, informe: Informe) {
-  localStorage.setItem(storageKey(id), JSON.stringify(informe));
+function saveInforme(id: number | string, inf: Informe) {
+  localStorage.setItem(storageKey(id), JSON.stringify(inf));
 }
 
 export default function VerReuniones() {
@@ -106,7 +88,6 @@ export default function VerReuniones() {
   const [informe, setInforme] = useState<Informe | null>(null);
   const [generating, setGenerating] = useState(false);
   const [errorGen, setErrorGen] = useState<string | null>(null);
-  // Track which bookings have saved informes for badge updates
   const [savedIds, setSavedIds] = useState<Set<string | number>>(new Set());
 
   useEffect(() => {
@@ -115,11 +96,7 @@ export default function VerReuniones() {
       .then((data) => {
         const list: Booking[] = data.bookings ?? [];
         setBookings(list);
-        // Find which bookings already have a saved informe
-        const ids = list
-          .filter((b) => loadInforme(b.id) !== null)
-          .map((b) => b.id);
-        setSavedIds(new Set(ids));
+        setSavedIds(new Set(list.filter((b) => loadInforme(b.id) !== null).map((b) => b.id)));
       })
       .catch(() => setErrorList("No se pudo cargar la lista de reuniones."))
       .finally(() => setLoadingList(false));
@@ -128,18 +105,14 @@ export default function VerReuniones() {
   function selectBooking(b: Booking) {
     setSelected(b);
     setErrorGen(null);
-    const saved = loadInforme(b.id);
-    setInforme(saved);
+    setInforme(loadInforme(b.id));
   }
 
   async function generarInforme(force = false) {
-    if (!selected) return;
-    if (!force && informe) return;
-
+    if (!selected || (!force && informe)) return;
     setGenerating(true);
     setErrorGen(null);
     setInforme(null);
-
     try {
       const res = await fetch("/api/reuniones/generar", {
         method: "POST",
@@ -147,256 +120,346 @@ export default function VerReuniones() {
         body: JSON.stringify({ booking: selected }),
       });
       const data = await res.json();
-
-      if (data.error) {
-        setErrorGen(data.error);
-        return;
-      }
-
+      if (data.error) { setErrorGen(data.error); return; }
       saveInforme(selected.id, data);
       setInforme(data);
       setSavedIds((prev) => new Set(Array.from(prev).concat(selected.id)));
-    } catch {
-      setErrorGen("Error de red al generar el informe.");
-    } finally {
-      setGenerating(false);
-    }
+    } catch { setErrorGen("Error de red al generar el informe."); }
+    finally { setGenerating(false); }
   }
 
   return (
-    <div className="flex h-full gap-0 overflow-hidden">
-      {/* Left column — booking list */}
-      <aside className="w-1/3 min-w-[260px] bg-white border-r border-gray-200 flex flex-col overflow-hidden">
-        <div className="px-4 py-3 border-b border-gray-100">
-          <h2 className="text-sm font-semibold text-gray-700">Reuniones</h2>
+    <div className="flex h-full overflow-hidden" style={{ background: "#F8F7F4" }}>
+
+      {/* ── Left: list ── */}
+      <aside
+        className="w-[280px] shrink-0 flex flex-col overflow-hidden"
+        style={{ background: "#FFFFFF", borderRight: "2px solid #111111" }}
+      >
+        {/* Header */}
+        <div className="px-5 py-4" style={{ borderBottom: "2px solid #111111" }}>
+          <h2 className="text-sm font-black" style={{ color: "#111111" }}>Reuniones</h2>
           {!loadingList && !errorList && (
-            <p className="text-xs text-gray-400 mt-0.5">{bookings.length} reservas activas</p>
+            <p className="text-xs mt-0.5" style={{ color: "#AAAAAA" }}>
+              {bookings.length} reservas activas
+            </p>
           )}
         </div>
 
-        <div className="flex-1 overflow-y-auto">
+        {/* List */}
+        <div className="flex-1 overflow-y-auto py-3 px-3 space-y-2">
           {loadingList && (
-            <div className="flex items-center justify-center h-32">
-              <span className="text-sm text-gray-400 animate-pulse">Cargando reuniones…</span>
-            </div>
+            [1, 2, 3].map((i) => <div key={i} className="h-[72px] rounded-2xl shimmer" />)
           )}
-
-          {errorList && (
-            <div className="p-4 text-sm text-red-500">{errorList}</div>
-          )}
-
+          {errorList && <p className="px-2 py-4 text-sm" style={{ color: "#EF4444" }}>{errorList}</p>}
           {!loadingList && !errorList && bookings.length === 0 && (
-            <div className="p-4 text-sm text-gray-400">No hay reuniones activas.</div>
+            <div className="flex flex-col items-center justify-center py-16 text-center">
+              <p className="text-sm font-bold" style={{ color: "#CCCCCC" }}>Sin reuniones activas</p>
+            </div>
           )}
 
           {bookings.map((b) => {
             const isActive = selected?.id === b.id;
             const saved = savedIds.has(b.id) ? loadInforme(b.id) : null;
+            const { day, month, time } = formatDateShort(b.starts_at);
+            const scoringConf = saved ? SCORING_CONFIG[saved.scoring] : null;
 
             return (
               <button
                 key={b.id}
                 onClick={() => selectBooking(b)}
-                className={`w-full text-left px-4 py-3 border-b border-gray-100 transition-colors ${
-                  isActive
-                    ? "bg-gray-900 text-white"
-                    : "hover:bg-gray-50 text-gray-700"
-                }`}
+                className="w-full text-left rounded-2xl p-3.5 transition-all duration-150 flex items-start gap-3"
+                style={{
+                  background: isActive ? "#F0F5FF" : "#FFFFFF",
+                  border: isActive ? "2px solid #2563FF" : "2px solid #E0DED8",
+                  boxShadow: isActive ? "2px 2px 0 #111111" : "none",
+                }}
               >
-                <div className="flex items-start justify-between gap-2">
-                  <span className={`text-sm font-semibold truncate ${isActive ? "text-white" : "text-gray-900"}`}>
-                    {b.contact_name || "Sin nombre"}
+                {/* Date block */}
+                <div
+                  className="w-10 shrink-0 flex flex-col items-center justify-center rounded-xl py-1.5"
+                  style={{
+                    background: isActive ? "#2563FF" : "#F8F7F4",
+                    border: "1.5px solid #111111",
+                  }}
+                >
+                  <span className="text-[10px] font-black leading-none" style={{ color: isActive ? "rgba(255,255,255,0.75)" : "#AAAAAA" }}>
+                    {month}
                   </span>
-                  {isActive ? (
-                    // Replicate badge with white/transparent style on dark bg
-                    saved ? (
-                      <span className="shrink-0 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-white/20 text-white">
-                        {saved.scoring === "warm" ? "Warm" : saved.scoring === "mild" ? "Mild" : "Cold"}
-                      </span>
-                    ) : (
-                      <span className="shrink-0 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-white/10 text-white/60">
-                        Pendiente
-                      </span>
-                    )
-                  ) : (
-                    scoringBadge(saved?.scoring ?? null)
-                  )}
+                  <span className="text-base font-black leading-tight" style={{ color: isActive ? "#FFFFFF" : "#111111" }}>
+                    {day}
+                  </span>
                 </div>
-                <p className={`text-xs mt-0.5 truncate ${isActive ? "text-gray-300" : "text-gray-400"}`}>
-                  {b.booking_type_title}
-                </p>
-                <p className={`text-xs mt-1 ${isActive ? "text-gray-400" : "text-gray-400"}`}>
-                  {formatDate(b.starts_at)}
-                </p>
+
+                {/* Info */}
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-start justify-between gap-1.5 mb-0.5">
+                    <span className="text-sm font-bold truncate" style={{ color: isActive ? "#2563FF" : "#111111" }}>
+                      {b.contact_name || "Sin nombre"}
+                    </span>
+                    {scoringConf && (
+                      <span
+                        className="text-[9px] font-black px-1.5 py-0.5 rounded shrink-0"
+                        style={scoringConf.badgeStyle}
+                      >
+                        {saved!.scoring.toUpperCase()}
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs truncate" style={{ color: "#888888" }}>{b.booking_type_title}</p>
+                  <p className="text-[11px] mt-0.5" style={{ color: "#BBBBBB" }}>{time}</p>
+                </div>
               </button>
             );
           })}
         </div>
       </aside>
 
-      {/* Right column — detail */}
-      <main className="flex-1 overflow-y-auto bg-gray-50">
+      {/* ── Right: detail ── */}
+      <main className="flex-1 overflow-y-auto">
         {!selected && (
           <div className="flex items-center justify-center h-full">
             <div className="text-center">
-              <svg className="w-12 h-12 text-gray-200 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2z" />
-              </svg>
-              <p className="text-gray-400 text-sm">Selecciona una reunión</p>
+              {/* Blob + icon */}
+              <div className="relative mx-auto mb-5 w-20 h-20">
+                <div
+                  className="blob-yellow absolute w-28 h-28 animate-float pointer-events-none"
+                  style={{ top: "50%", left: "50%", transform: "translate(-50%, -50%) scale(1.3)", opacity: 0.6 }}
+                />
+                <div
+                  className="w-20 h-20 rounded-3xl flex items-center justify-center relative z-10"
+                  style={{ background: "#FFFFFF", border: "2px solid #111111", boxShadow: "3px 3px 0 #111111" }}
+                >
+                  <svg className="w-8 h-8" fill="none" stroke="#111111" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2z" />
+                  </svg>
+                </div>
+              </div>
+              <p className="text-sm font-bold" style={{ color: "#AAAAAA" }}>Selecciona una reunión</p>
             </div>
           </div>
         )}
 
         {selected && (
-          <div className="max-w-2xl mx-auto p-8">
-            {/* Header */}
-            <div className="flex items-start justify-between mb-6">
-              <div>
-                <h2 className="text-xl font-bold text-gray-900">{selected.contact_name}</h2>
-                <p className="text-sm text-gray-500 mt-0.5">{selected.contact_email}</p>
-                <p className="text-xs text-gray-400 mt-1">{selected.booking_type_title} · {formatDate(selected.starts_at)}</p>
-                {selected.web_url && (
-                  <a
-                    href={selected.web_url.startsWith("http") ? selected.web_url : `https://${selected.web_url}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-xs text-blue-500 hover:underline mt-1 inline-block"
+          <div className="max-w-2xl mx-auto p-8 space-y-4">
+
+            {/* Header card */}
+            <div
+              className="rounded-2xl p-5"
+              style={{ background: "#FFFFFF", border: "2px solid #111111", boxShadow: "3px 3px 0 #111111" }}
+            >
+              <div className="flex items-start justify-between">
+                <div className="flex items-start gap-3.5">
+                  <div
+                    className="w-12 h-12 rounded-2xl flex items-center justify-center text-[13px] font-black shrink-0"
+                    style={{
+                      background: getAvatarBg(informe?.scoring ?? null),
+                      color: getAvatarText(informe?.scoring ?? null),
+                      border: "2px solid #111111",
+                    }}
                   >
-                    {selected.web_url}
-                  </a>
+                    {getInitials(selected.contact_name || "?")}
+                  </div>
+                  <div>
+                    <h2 className="text-base font-black" style={{ color: "#111111" }}>{selected.contact_name}</h2>
+                    <p className="text-xs mt-0.5" style={{ color: "#888888" }}>{selected.contact_email}</p>
+                    <div className="flex items-center gap-2 mt-2 flex-wrap">
+                      <span
+                        className="text-[11px] font-bold px-2.5 py-0.5 rounded"
+                        style={{ background: "#EFF4FF", color: "#2563FF", border: "1.5px solid #111111" }}
+                      >
+                        {selected.booking_type_title}
+                      </span>
+                      <span className="text-[11px]" style={{ color: "#AAAAAA" }}>{formatDate(selected.starts_at)}</span>
+                    </div>
+                    {selected.web_url && (
+                      <a
+                        href={selected.web_url.startsWith("http") ? selected.web_url : `https://${selected.web_url}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs mt-1.5 inline-flex items-center gap-1 hover:underline"
+                        style={{ color: "#2563FF" }}
+                      >
+                        {selected.web_url}
+                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                        </svg>
+                      </a>
+                    )}
+                  </div>
+                </div>
+                {informe && (
+                  <button
+                    onClick={() => generarInforme(true)}
+                    disabled={generating}
+                    className="text-xs px-3 py-1.5 rounded-xl transition-all font-bold disabled:opacity-40"
+                    style={{ border: "1.5px solid #111111", color: "#555555", background: "#F8F7F4" }}
+                  >
+                    Regenerar
+                  </button>
                 )}
               </div>
-
-              {informe && (
-                <button
-                  onClick={() => generarInforme(true)}
-                  disabled={generating}
-                  className="text-xs text-gray-400 hover:text-gray-600 border border-gray-200 rounded px-2 py-1 transition-colors disabled:opacity-40"
-                >
-                  Regenerar
-                </button>
-              )}
             </div>
 
             {/* Form answers */}
             {selected.questions.length > 0 && (
-              <div className="bg-white rounded-xl border border-gray-200 p-5 mb-6">
-                <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-3">
+              <div
+                className="rounded-2xl p-5"
+                style={{ background: "#FFFFFF", border: "2px solid #111111", boxShadow: "3px 3px 0 #111111" }}
+              >
+                <p className="text-[10px] font-black uppercase tracking-widest mb-3.5" style={{ color: "#AAAAAA" }}>
                   Respuestas del formulario
-                </h3>
-                <dl className="space-y-3">
+                </p>
+                <dl className="space-y-3.5">
                   {selected.questions.map((q, i) => (
                     <div key={i}>
-                      <dt className="text-xs text-gray-400">{q.question}</dt>
-                      <dd className="text-sm text-gray-800 font-medium mt-0.5">{q.answer || "—"}</dd>
+                      <dt className="text-xs mb-0.5" style={{ color: "#BBBBBB" }}>{q.question}</dt>
+                      <dd className="text-sm font-semibold" style={{ color: "#222222" }}>{q.answer || "—"}</dd>
                     </div>
                   ))}
                 </dl>
               </div>
             )}
 
-            {/* Generate button / loading */}
+            {/* Generate */}
             {!informe && !generating && (
               <button
                 onClick={() => generarInforme()}
-                className="w-full bg-gray-900 hover:bg-gray-800 text-white text-sm font-semibold py-3 px-6 rounded-xl transition-colors"
+                className="w-full py-3.5 flex items-center justify-center gap-2.5 rounded-2xl text-sm font-black text-white transition-all"
+                style={{ background: "#2563FF", border: "2px solid #111111", boxShadow: "3px 3px 0 #111111" }}
               >
-                ✨ Generar informe
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+                Generar informe con IA
               </button>
             )}
 
             {generating && (
-              <div className="w-full flex items-center justify-center gap-3 bg-white border border-gray-200 rounded-xl py-5">
-                <svg className="animate-spin w-4 h-4 text-gray-400" viewBox="0 0 24 24" fill="none">
+              <div
+                className="w-full flex items-center justify-center gap-3 py-5 rounded-2xl"
+                style={{ background: "#FFFFFF", border: "2px solid #111111" }}
+              >
+                <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24" style={{ color: "#2563FF" }}>
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
                 </svg>
-                <span className="text-sm text-gray-500">Analizando perfil…</span>
+                <span className="text-sm font-bold" style={{ color: "#888888" }}>Analizando perfil…</span>
               </div>
             )}
 
             {errorGen && (
-              <p className="text-sm text-red-500 mt-3">{errorGen}</p>
+              <p className="text-sm rounded-2xl px-4 py-3.5 font-medium" style={{ background: "#FFF5F5", color: "#EF4444", border: "2px solid #EF4444" }}>
+                {errorGen}
+              </p>
             )}
 
             {/* Informe */}
-            {informe && (
-              <div className="space-y-5">
-                {/* Scoring */}
-                <div className="bg-white rounded-xl border border-gray-200 p-5">
-                  <div className="flex items-center gap-3 mb-2">
-                    {scoringBadgeLarge(informe.scoring)}
+            {informe && (() => {
+              const conf = SCORING_CONFIG[informe.scoring];
+              return (
+                <div className="space-y-3 animate-fade-in-up">
+                  {/* Scoring */}
+                  <div className="rounded-2xl overflow-hidden" style={{ border: "2px solid #111111", boxShadow: "3px 3px 0 #111111" }}>
+                    <div className="px-5 py-4 flex items-center gap-3" style={{ background: conf.bg }}>
+                      <span className="text-2xl">{conf.emoji}</span>
+                      <div>
+                        <p className="text-[10px] font-black uppercase tracking-widest opacity-50" style={{ color: conf.text }}>Scoring</p>
+                        <p className="text-base font-black" style={{ color: conf.text }}>{conf.label}</p>
+                      </div>
+                    </div>
+                    <div className="px-5 py-4 bg-white" style={{ borderTop: "2px solid #111111" }}>
+                      <p className="text-sm leading-relaxed" style={{ color: "#555555" }}>{informe.razon_scoring}</p>
+                    </div>
                   </div>
-                  <p className="text-sm text-gray-600 mt-2">{informe.razon_scoring}</p>
-                </div>
 
-                {/* Resumen empresa */}
-                <div className="bg-white rounded-xl border border-gray-200 p-5">
-                  <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-2">
-                    Resumen empresa
-                  </h3>
-                  <p className="text-sm text-gray-700">{informe.resumen_empresa}</p>
-                </div>
+                  {/* Grid */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {[
+                      { label: "Resumen empresa", content: informe.resumen_empresa, accent: "#2563FF" },
+                      { label: "Perfil del lead", content: informe.perfil_lead, accent: "#111111" },
+                    ].map(({ label, content, accent }) => (
+                      <div
+                        key={label}
+                        className="rounded-2xl p-5"
+                        style={{ background: "#FFFFFF", border: "2px solid #111111", boxShadow: "3px 3px 0 #111111" }}
+                      >
+                        <p className="text-[10px] font-black uppercase tracking-widest mb-3" style={{ color: accent }}>
+                          {label}
+                        </p>
+                        <p className="text-sm leading-relaxed" style={{ color: "#444444" }}>{content}</p>
+                      </div>
+                    ))}
+                  </div>
 
-                {/* Perfil del lead */}
-                <div className="bg-white rounded-xl border border-gray-200 p-5">
-                  <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-2">
-                    Perfil del lead
-                  </h3>
-                  <p className="text-sm text-gray-700">{informe.perfil_lead}</p>
-                </div>
-
-                {/* Objeciones */}
-                {informe.objeciones?.length > 0 && (
-                  <div className="bg-white rounded-xl border border-gray-200 p-5">
-                    <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-3">
-                      Objeciones probables
-                    </h3>
-                    <table className="w-full text-sm">
-                      <thead>
-                        <tr>
-                          <th className="text-left text-xs text-gray-400 font-medium pb-2 w-1/2">Objeción</th>
-                          <th className="text-left text-xs text-gray-400 font-medium pb-2 w-1/2">Cómo responder</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-gray-100">
+                  {/* Objeciones */}
+                  {informe.objeciones?.length > 0 && (
+                    <div
+                      className="rounded-2xl p-5"
+                      style={{ background: "#FFFFFF", border: "2px solid #111111", boxShadow: "3px 3px 0 #111111" }}
+                    >
+                      <p className="text-[10px] font-black uppercase tracking-widest mb-4" style={{ color: "#F59E0B" }}>
+                        Objeciones probables
+                      </p>
+                      <div className="space-y-2.5">
                         {informe.objeciones.map((o, i) => (
-                          <tr key={i}>
-                            <td className="py-2 pr-4 text-gray-700 align-top">{o.objecion}</td>
-                            <td className="py-2 text-gray-600 align-top">{o.como_responder}</td>
-                          </tr>
+                          <div
+                            key={i}
+                            className="rounded-xl p-4"
+                            style={{ background: "#F8F7F4", border: "1.5px solid #E0DED8" }}
+                          >
+                            <p className="text-sm font-bold mb-1" style={{ color: "#111111" }}>{o.objecion}</p>
+                            <p className="text-sm" style={{ color: "#666666" }}>{o.como_responder}</p>
+                          </div>
                         ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
+                      </div>
+                    </div>
+                  )}
 
-                {/* Qué proponer */}
-                <div className="bg-gray-900 rounded-xl p-5">
-                  <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-2">
-                    Qué proponer
-                  </h3>
-                  <p className="text-sm text-white">{informe.que_proponer}</p>
+                  {/* Qué proponer */}
+                  <div
+                    className="rounded-2xl p-5 relative overflow-hidden"
+                    style={{ background: "#111111", border: "2px solid #111111", boxShadow: "3px 3px 0 #FFD400" }}
+                  >
+                    <div className="blob-yellow absolute -top-10 -right-10 w-48 h-48 pointer-events-none opacity-20" />
+                    <div className="relative z-10">
+                      <div className="flex items-center gap-2 mb-3">
+                        <svg className="w-4 h-4" fill="none" stroke="#2563FF" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                        </svg>
+                        <p className="text-[10px] font-black uppercase tracking-widest" style={{ color: "#555555" }}>Qué proponer</p>
+                      </div>
+                      <p className="text-sm leading-relaxed" style={{ color: "#E8E8E8" }}>{informe.que_proponer}</p>
+                    </div>
+                  </div>
+
+                  {/* Preguntas clave */}
+                  {informe.preguntas_clave?.length > 0 && (
+                    <div
+                      className="rounded-2xl p-5"
+                      style={{ background: "#FFFFFF", border: "2px solid #111111", boxShadow: "3px 3px 0 #111111" }}
+                    >
+                      <p className="text-[10px] font-black uppercase tracking-widest mb-4" style={{ color: "#22C55E" }}>
+                        Preguntas clave
+                      </p>
+                      <ul className="space-y-2">
+                        {informe.preguntas_clave.map((p, i) => (
+                          <li key={i} className="flex items-start gap-2.5 text-sm" style={{ color: "#444444" }}>
+                            <span
+                              className="text-[10px] font-black w-5 h-5 rounded flex items-center justify-center shrink-0 mt-0.5"
+                              style={{ background: "#F0FDF4", color: "#16A34A", border: "1.5px solid #111111" }}
+                            >
+                              {i + 1}
+                            </span>
+                            {p}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
                 </div>
-
-                {/* Preguntas clave */}
-                {informe.preguntas_clave?.length > 0 && (
-                  <div className="bg-white rounded-xl border border-gray-200 p-5">
-                    <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-3">
-                      Preguntas clave
-                    </h3>
-                    <ul className="space-y-2">
-                      {informe.preguntas_clave.map((p, i) => (
-                        <li key={i} className="flex items-start gap-2 text-sm text-gray-700">
-                          <span className="text-gray-300 font-mono text-xs mt-0.5">{String(i + 1).padStart(2, "0")}</span>
-                          {p}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-              </div>
-            )}
+              );
+            })()}
           </div>
         )}
       </main>

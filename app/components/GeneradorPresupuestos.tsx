@@ -10,11 +10,7 @@ const SYSTEM_CONTENIDO = `Eres la asistente comercial de ZasZas Agency / Mila Co
 const SYSTEM_HTML = `Eres una experta maquetadora web. Recibes el texto completo de una propuesta comercial de ZasZas Agency y lo conviertes en un archivo HTML completo, autocontenido (CSS y JS inline), con el branding exacto de Mila Coco. Devuelves SOLO el HTML completo, sin ningún texto antes ni después, sin bloques de código markdown. El HTML debe empezar con <!DOCTYPE html> y ser una página completa y funcional.`;
 
 function buildContenidoPrompt(data: {
-  transcripcion: string;
-  nombreCliente: string;
-  servicios: string;
-  precio: string;
-  notas: string;
+  transcripcion: string; nombreCliente: string; servicios: string; precio: string; notas: string;
 }): string {
   return `Genera el texto completo de una propuesta comercial de ZasZas Agency para el cliente "${data.nombreCliente}".
 
@@ -201,53 +197,36 @@ ESTRUCTURA HTML:
 Devuelve SOLO el HTML completo comenzando con <!DOCTYPE html>. Sin texto adicional, sin bloques markdown.`;
 }
 
+const STEPS = [
+  { number: "01", title: "¿Para quién?",   description: "Cliente y presupuesto",      color: "#2563FF" },
+  { number: "02", title: "¿Qué ofrecemos?", description: "Servicios incluidos",        color: "#111111" },
+  { number: "03", title: "Contexto",        description: "Transcripción de la reunión", color: "#059669" },
+];
+
 export default function GeneradorPresupuestos() {
   const [transcripcion, setTranscripcion] = useState("");
   const [nombreCliente, setNombreCliente] = useState("");
   const [servicios, setServicios] = useState("");
   const [precio, setPrecio] = useState("");
   const [notas, setNotas] = useState("");
-
   const [paso, setPaso] = useState<Paso>("idle");
   const [htmlGenerado, setHtmlGenerado] = useState("");
   const [error, setError] = useState("");
 
   async function generarPresupuesto() {
-    if (!nombreCliente.trim()) {
-      setError("El nombre del cliente es obligatorio.");
-      return;
-    }
-    if (!transcripcion.trim() && !servicios.trim()) {
-      setError("Añade al menos la transcripción de la reunión o los servicios a ofrecer.");
-      return;
-    }
-
+    if (!nombreCliente.trim()) { setError("El nombre del cliente es obligatorio."); return; }
+    if (!transcripcion.trim() && !servicios.trim()) { setError("Añade al menos la transcripción o los servicios a ofrecer."); return; }
     setError("");
     setHtmlGenerado("");
     setPaso("generando-contenido");
-
     try {
-      // Paso 1: generar el contenido de la propuesta
       const contenido = await generateText(
         buildContenidoPrompt({ transcripcion, nombreCliente, servicios, precio, notas }),
-        SYSTEM_CONTENIDO,
-        4000
+        SYSTEM_CONTENIDO, 4000
       );
-
-      // Paso 2: generar el HTML
       setPaso("generando-html");
-      const html = await generateText(
-        buildHtmlPrompt(contenido, nombreCliente),
-        SYSTEM_HTML,
-        6000
-      );
-
-      // Strip por si Claude añade bloques markdown
-      const htmlLimpio = html
-        .replace(/^```(?:html)?\s*/i, "")
-        .replace(/\s*```\s*$/, "")
-        .trim();
-
+      const html = await generateText(buildHtmlPrompt(contenido, nombreCliente), SYSTEM_HTML, 6000);
+      const htmlLimpio = html.replace(/^```(?:html)?\s*/i, "").replace(/\s*```\s*$/, "").trim();
       setHtmlGenerado(htmlLimpio);
       setPaso("listo");
     } catch (e) {
@@ -256,11 +235,7 @@ export default function GeneradorPresupuestos() {
     }
   }
 
-  function resetear() {
-    setPaso("idle");
-    setHtmlGenerado("");
-    setError("");
-  }
+  function resetear() { setPaso("idle"); setHtmlGenerado(""); setError(""); }
 
   function descargarHtml() {
     const blob = new Blob([htmlGenerado], { type: "text/html;charset=utf-8" });
@@ -274,151 +249,242 @@ export default function GeneradorPresupuestos() {
 
   function abrirEnPestana() {
     const blob = new Blob([htmlGenerado], { type: "text/html;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    window.open(url, "_blank");
+    window.open(URL.createObjectURL(blob), "_blank");
   }
 
   const cargando = ["generando-contenido", "generando-html"].includes(paso);
-
   const PASO_LABELS: Record<string, string> = {
     "generando-contenido": "Redactando las 9 secciones de la propuesta...",
     "generando-html": "Maquetando la landing page con el branding de Mila Coco...",
   };
+  const progresoPorcentaje = paso === "generando-contenido" ? 40 : paso === "generando-html" ? 80 : 0;
 
   return (
-    <div className="max-w-3xl mx-auto space-y-6">
-      {/* Formulario */}
-      <div className="space-y-4">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div className="sm:col-span-2">
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">
-              Nombre del cliente / empresa <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="text"
-              value={nombreCliente}
-              onChange={(e) => setNombreCliente(e.target.value)}
-              placeholder="Ej: Smarttek, Ana García, Inmobiliaria López..."
-              className="w-full rounded-lg border border-gray-200 bg-white px-4 py-3 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent"
-            />
-          </div>
+    <div className="max-w-2xl mx-auto space-y-4 relative">
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">
-              Precio / inversión
-            </label>
-            <input
-              type="text"
-              value={precio}
-              onChange={(e) => setPrecio(e.target.value)}
-              placeholder="Ej: 1.200€/mes, 3.500€ pago único..."
-              className="w-full rounded-lg border border-gray-200 bg-white px-4 py-3 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent"
-            />
-          </div>
+      {/* Yellow blob decoration — top right */}
+      <div
+        className="blob-yellow absolute -top-12 -right-20 w-64 h-64 pointer-events-none animate-float"
+        style={{ opacity: 0.5, zIndex: 0 }}
+      />
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">
-              Notas adicionales
-            </label>
-            <input
-              type="text"
-              value={notas}
-              onChange={(e) => setNotas(e.target.value)}
-              placeholder="Bonus, fecha límite, condiciones especiales..."
-              className="w-full rounded-lg border border-gray-200 bg-white px-4 py-3 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent"
+      {/* Doodle — small star/asterisk */}
+      <div className="absolute -left-16 top-12 pointer-events-none opacity-20 hidden xl:block">
+        <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+          <line x1="24" y1="4"  x2="24" y2="44" stroke="#111" strokeWidth="2.5" strokeLinecap="round" />
+          <line x1="4"  y1="24" x2="44" y2="24" stroke="#111" strokeWidth="2.5" strokeLinecap="round" />
+          <line x1="10" y1="10" x2="38" y2="38" stroke="#111" strokeWidth="2.5" strokeLinecap="round" />
+          <line x1="38" y1="10" x2="10" y2="38" stroke="#111" strokeWidth="2.5" strokeLinecap="round" />
+        </svg>
+      </div>
+
+      <div className="relative z-10 space-y-4">
+
+        {/* Step indicators */}
+        <div className="grid grid-cols-3 gap-3">
+          {STEPS.map((step) => (
+            <div
+              key={step.number}
+              className="rounded-2xl p-4"
+              style={{ background: "#FFFFFF", border: "2px solid #111111", boxShadow: "3px 3px 0 #111111" }}
+            >
+              <span className="text-[10px] font-black tracking-widest" style={{ color: step.color }}>
+                {step.number}
+              </span>
+              <p className="text-sm font-black mt-1" style={{ color: "#111111" }}>{step.title}</p>
+              <p className="text-xs mt-0.5" style={{ color: "#AAAAAA" }}>{step.description}</p>
+            </div>
+          ))}
+        </div>
+
+        {/* Step 01: Cliente + precio */}
+        <div className="rounded-2xl overflow-hidden" style={{ background: "#FFFFFF", border: "2px solid #111111", boxShadow: "3px 3px 0 #111111" }}>
+          <div className="flex items-center gap-2 px-5 py-3" style={{ background: "#F8F7F4", borderBottom: "2px solid #111111" }}>
+            <span
+              className="text-[10px] font-black w-5 h-5 rounded flex items-center justify-center text-white shrink-0"
+              style={{ background: "#2563FF", border: "1.5px solid #111111" }}
+            >
+              1
+            </span>
+            <span className="text-sm font-black" style={{ color: "#111111" }}>Cliente y presupuesto</span>
+          </div>
+          <div className="p-5 grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="sm:col-span-2">
+              <label className="block text-xs font-bold mb-1.5" style={{ color: "#555555" }}>
+                Nombre del cliente / empresa <span style={{ color: "#EF4444" }}>*</span>
+              </label>
+              <input
+                type="text"
+                value={nombreCliente}
+                onChange={(e) => setNombreCliente(e.target.value)}
+                placeholder="Ej: Smarttek, Ana García, Inmobiliaria López..."
+                className="w-full rounded-xl px-4 py-3 text-sm focus:outline-none transition-all"
+                style={{ border: "2px solid #111111", color: "#222222", background: "#FFFFFF" }}
+                onFocus={(e) => (e.target.style.borderColor = "#2563FF")}
+                onBlur={(e) => (e.target.style.borderColor = "#111111")}
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-bold mb-1.5" style={{ color: "#555555" }}>Precio / inversión</label>
+              <input
+                type="text"
+                value={precio}
+                onChange={(e) => setPrecio(e.target.value)}
+                placeholder="Ej: 1.200€/mes, 3.500€..."
+                className="w-full rounded-xl px-4 py-3 text-sm focus:outline-none transition-all"
+                style={{ border: "2px solid #111111", color: "#222222", background: "#FFFFFF" }}
+                onFocus={(e) => (e.target.style.borderColor = "#2563FF")}
+                onBlur={(e) => (e.target.style.borderColor = "#111111")}
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-bold mb-1.5" style={{ color: "#555555" }}>Notas adicionales</label>
+              <input
+                type="text"
+                value={notas}
+                onChange={(e) => setNotas(e.target.value)}
+                placeholder="Bonus, fecha límite, condiciones..."
+                className="w-full rounded-xl px-4 py-3 text-sm focus:outline-none transition-all"
+                style={{ border: "2px solid #111111", color: "#222222", background: "#FFFFFF" }}
+                onFocus={(e) => (e.target.style.borderColor = "#2563FF")}
+                onBlur={(e) => (e.target.style.borderColor = "#111111")}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Step 02: Servicios */}
+        <div className="rounded-2xl overflow-hidden" style={{ background: "#FFFFFF", border: "2px solid #111111", boxShadow: "3px 3px 0 #111111" }}>
+          <div className="flex items-center gap-2 px-5 py-3" style={{ background: "#F8F7F4", borderBottom: "2px solid #111111" }}>
+            <span
+              className="text-[10px] font-black w-5 h-5 rounded flex items-center justify-center text-white shrink-0"
+              style={{ background: "#111111", border: "1.5px solid #111111" }}
+            >
+              2
+            </span>
+            <span className="text-sm font-black" style={{ color: "#111111" }}>Servicios a ofrecer</span>
+          </div>
+          <div className="p-5">
+            <textarea
+              value={servicios}
+              onChange={(e) => setServicios(e.target.value)}
+              placeholder="Lista los servicios, fases o acciones. Ej: Estrategia de contenido, gestión de redes, newsletter mensual..."
+              rows={4}
+              className="w-full text-sm resize-none focus:outline-none bg-white leading-relaxed"
+              style={{ color: "#333333" }}
             />
           </div>
         </div>
 
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1.5">
-            Servicios a ofrecer
-          </label>
-          <textarea
-            value={servicios}
-            onChange={(e) => setServicios(e.target.value)}
-            placeholder="Lista los servicios, fases o acciones. Ej: Estrategia de contenido, gestión de redes, newsletter mensual, informe trimestral..."
-            rows={4}
-            className="w-full rounded-lg border border-gray-200 bg-white px-4 py-3 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent resize-y"
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1.5">
-            Transcripción de la reunión
-          </label>
-          <textarea
-            value={transcripcion}
-            onChange={(e) => setTranscripcion(e.target.value)}
-            placeholder="Pega aquí la transcripción, el resumen de la llamada o los puntos clave que tratasteis. Cuanto más detalle, mejor propuesta."
-            rows={8}
-            className="w-full rounded-lg border border-gray-200 bg-white px-4 py-3 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent resize-y"
-          />
+        {/* Step 03: Transcripción */}
+        <div className="rounded-2xl overflow-hidden" style={{ background: "#FFFFFF", border: "2px solid #111111", boxShadow: "3px 3px 0 #111111" }}>
+          <div className="flex items-center gap-2 px-5 py-3" style={{ background: "#F8F7F4", borderBottom: "2px solid #111111" }}>
+            <span
+              className="text-[10px] font-black w-5 h-5 rounded flex items-center justify-center text-white shrink-0"
+              style={{ background: "#059669", border: "1.5px solid #111111" }}
+            >
+              3
+            </span>
+            <span className="text-sm font-black" style={{ color: "#111111" }}>Transcripción de la reunión</span>
+            <span className="text-[11px] ml-auto" style={{ color: "#AAAAAA" }}>Cuanto más detalle, mejor propuesta</span>
+          </div>
+          <div className="p-5">
+            <textarea
+              value={transcripcion}
+              onChange={(e) => setTranscripcion(e.target.value)}
+              placeholder="Pega aquí la transcripción, el resumen de la llamada o los puntos clave que tratasteis..."
+              rows={7}
+              className="w-full text-sm resize-none focus:outline-none bg-white leading-relaxed"
+              style={{ color: "#333333" }}
+            />
+          </div>
         </div>
 
         {error && (
-          <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-4 py-3">
+          <div className="rounded-xl px-4 py-3 text-sm font-medium" style={{ background: "#FFF5F5", border: "2px solid #EF4444", color: "#C53030" }}>
             {error}
-          </p>
+          </div>
         )}
 
-        <button
-          onClick={cargando ? undefined : generarPresupuesto}
-          disabled={cargando}
-          className="w-full py-3 px-6 bg-gray-900 text-white text-sm font-semibold rounded-lg hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-        >
-          {cargando ? (
-            <>
-              <svg className="animate-spin w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24">
+        {/* Progress bar */}
+        {cargando && (
+          <div className="rounded-2xl p-5" style={{ background: "#FFFFFF", border: "2px solid #111111", boxShadow: "3px 3px 0 #111111" }}>
+            <div className="flex items-center gap-3 mb-3">
+              <svg className="animate-spin w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" style={{ color: "#2563FF" }}>
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
               </svg>
-              {PASO_LABELS[paso] ?? "Procesando..."}
-            </>
-          ) : (
-            "Generar presupuesto"
-          )}
-        </button>
-      </div>
-
-      {/* Resultado */}
-      {paso === "listo" && htmlGenerado && (
-        <div className="rounded-xl border border-green-200 bg-green-50 p-6 space-y-4">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-full bg-green-500 flex items-center justify-center shrink-0">
-              <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
-              </svg>
+              <p className="text-sm font-bold" style={{ color: "#333333" }}>{PASO_LABELS[paso] ?? "Procesando..."}</p>
             </div>
-            <div>
-              <p className="text-sm font-semibold text-green-800">¡Propuesta generada!</p>
-              <p className="text-xs text-green-600">Ábrela en el navegador y usa Cmd+P → Guardar como PDF para enviársela al cliente.</p>
+            <div className="h-2 rounded-full overflow-hidden" style={{ background: "#F0EDE8", border: "1.5px solid #111111" }}>
+              <div
+                className="h-full rounded-full transition-all duration-700"
+                style={{ width: `${progresoPorcentaje}%`, background: "#2563FF" }}
+              />
             </div>
           </div>
+        )}
 
-          <div className="flex gap-3">
-            <button
-              onClick={abrirEnPestana}
-              className="flex-1 py-2.5 px-4 bg-gray-900 text-white text-sm font-semibold rounded-lg hover:bg-gray-700 transition-colors"
-            >
-              Abrir propuesta
-            </button>
-            <button
-              onClick={descargarHtml}
-              className="flex-1 py-2.5 px-4 bg-white text-gray-700 text-sm font-semibold rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors"
-            >
-              Descargar HTML
-            </button>
-          </div>
-
+        {/* Generate button */}
+        {!cargando && paso !== "listo" && (
           <button
-            onClick={resetear}
-            className="text-sm text-green-700 hover:text-green-900 underline"
+            onClick={generarPresupuesto}
+            disabled={cargando}
+            className="w-full py-3.5 flex items-center justify-center gap-2.5 rounded-2xl text-sm font-black text-white transition-all"
+            style={{ background: "#2563FF", border: "2px solid #111111", boxShadow: "3px 3px 0 #111111" }}
           >
-            Generar otra propuesta
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 10V3L4 14h7v7l9-11h-7z" />
+            </svg>
+            Generar propuesta
           </button>
-        </div>
-      )}
+        )}
+
+        {/* Result */}
+        {paso === "listo" && htmlGenerado && (
+          <div
+            className="rounded-2xl overflow-hidden animate-fade-in-up"
+            style={{ border: "2px solid #111111", boxShadow: "3px 3px 0 #FFD400" }}
+          >
+            <div className="px-5 py-4 flex items-center gap-3" style={{ background: "#F0FDF4", borderBottom: "2px solid #111111" }}>
+              <div
+                className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0"
+                style={{ background: "#22C55E", border: "1.5px solid #111111" }}
+              >
+                <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+              <div>
+                <p className="text-sm font-black" style={{ color: "#15803D" }}>Propuesta generada</p>
+                <p className="text-xs" style={{ color: "#4ADE80" }}>Cmd+P → Guardar como PDF para enviar al cliente</p>
+              </div>
+            </div>
+            <div className="px-5 py-4 flex gap-3" style={{ background: "#FFFFFF" }}>
+              <button
+                onClick={abrirEnPestana}
+                className="flex-1 py-2.5 px-4 rounded-xl text-sm font-black text-white transition-all"
+                style={{ background: "#2563FF", border: "2px solid #111111", boxShadow: "2px 2px 0 #111111" }}
+              >
+                Abrir propuesta
+              </button>
+              <button
+                onClick={descargarHtml}
+                className="flex-1 py-2.5 px-4 rounded-xl text-sm font-black transition-all"
+                style={{ background: "#F8F7F4", color: "#111111", border: "2px solid #111111" }}
+              >
+                Descargar HTML
+              </button>
+            </div>
+            <div className="px-5 pb-4" style={{ background: "#FFFFFF" }}>
+              <button onClick={resetear} className="text-sm font-bold hover:underline" style={{ color: "#AAAAAA" }}>
+                Generar otra propuesta
+              </button>
+            </div>
+          </div>
+        )}
+
+      </div>
     </div>
   );
 }
